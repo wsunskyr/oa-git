@@ -826,7 +826,7 @@ procedure(oagitRestoreOrderRecords(records order)
       then
         rank = makeTable("oagitRestoreOrderRank" nil)
         for(i 0 sub1(length(order))
-          rank[nth(i order)] = i)
+          rank[oagitRestoreString(nth(i order))] = i)
         out = nil
         foreach(name order
           foreach(record records

@@ -637,7 +637,10 @@ def test_verify_roundtrip_detects_declared_port_order_change() -> None:
     ordered = _with_port_order(base, ["a", "b"])
     reordered = _with_port_order(base, ["b", "a"])
 
-    assert verify_roundtrip(ordered, reordered, raise_on_mismatch=False).ok is False
+    report = verify_roundtrip(ordered, reordered, raise_on_mismatch=False)
+    assert report.ok is False
+    assert report.electrical_ok is False
+    assert report.placement_ok is True
     with pytest.raises(RoundtripMismatchError, match="port order"):
         verify_roundtrip(ordered, reordered)
     assert verify_roundtrip(ordered, ordered).ok is True

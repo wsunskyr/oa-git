@@ -1817,7 +1817,7 @@ def verify_roundtrip(
     issues = tuple(electrical_issues + placement_issues + port_order_issues)
     report = RoundtripReport(
         ok=not issues,
-        electrical_ok=not electrical_issues,
+        electrical_ok=not (electrical_issues or port_order_issues),
         placement_ok=not placement_issues,
         issues=issues,
     )
