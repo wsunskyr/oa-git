@@ -442,3 +442,34 @@ def test_fixture_backend_success_and_directory_loading(tmp_path: Path) -> None:
     assert isinstance(load_backend("fixture"), FixtureBackend)
     with pytest.raises(BridgeExecutionError, match="unknown backend"):
         load_backend("no-such-backend")
+
+
+def test_restore_request_carries_captured_port_order() -> None:
+    source = make_snapshot()
+    ordered = replace(
+        source,
+        manifest=replace(source.manifest, metadata={"port_order": ["out", "in"]}),
+    )
+    rendered = render_restore_request_skill(
+        ordered,
+        TARGET,
+        draft_cell="amp__oagit_draft_001",
+        overwrite=True,
+        allow_libraries=("sandbox",),
+        output_path=Path("restore.json"),
+    )
+
+    assert 'port_order ("out" "in")' in rendered
+
+
+def test_restore_request_omits_port_order_when_metadata_is_absent() -> None:
+    rendered = render_restore_request_skill(
+        make_snapshot(),
+        TARGET,
+        draft_cell="amp__oagit_draft_001",
+        overwrite=True,
+        allow_libraries=("sandbox",),
+        output_path=Path("restore.json"),
+    )
+
+    assert "port_order nil" in rendered

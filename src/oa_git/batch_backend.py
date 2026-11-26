@@ -18,6 +18,7 @@ import re
 from typing import Any
 
 from .bridge import to_skill_literal
+from .guards import schematic_port_order
 from .model import (
     BATCH_PROTOCOL_V1,
     SPOOL_PROTOCOL_V1,
@@ -152,6 +153,7 @@ def schematic_snapshot_to_restore_item(
         raise SchemaValidationError("max_passes must be a positive int")
 
     rules_map = _normalize_coupling_rules_map(coupling_rules)
+    port_order = schematic_port_order(snapshot)
     placement_by_name = {item.name: item for item in snapshot.placement.instances}
     instances: list[dict[str, Any]] = []
     for inst in snapshot.electrical.instances:
@@ -194,6 +196,7 @@ def schematic_snapshot_to_restore_item(
         "allow_libraries": [str(lib) for lib in allow_libraries],
         "max_passes": max_passes,
         "recompute_derived": recompute_derived,
+        "port_order": list(port_order) if port_order else [],
         "ports": [
             {"name": p.name, "direction": p.direction}
             for p in snapshot.electrical.ports

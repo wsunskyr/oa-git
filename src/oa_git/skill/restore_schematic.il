@@ -820,6 +820,28 @@ procedure(oagitRestoreCreateInstances(cv records instByName @optional (req nil))
   )
 )
 
+procedure(oagitRestoreOrderRecords(records order)
+  let((rank out)
+    if(order && listp(order)
+      then
+        rank = makeTable("oagitRestoreOrderRank" nil)
+        for(i 0 sub1(length(order))
+          rank[nth(i order)] = i)
+        out = nil
+        foreach(name order
+          foreach(record records
+            when(equal(oagitRestoreString(record->name)
+                       oagitRestoreString(name))
+              out = cons(record out))))
+        out = reverse(out)
+        foreach(record records
+          unless(rank[oagitRestoreString(record->name)]
+            out = append1(out record)))
+        out
+      else
+        records))
+)
+
 procedure(oagitRestoreCreatePins(cv records)
   let((record masterInfo master openedByScript pin netName net term)
     foreach(record records
@@ -1185,10 +1207,11 @@ procedure(oagitRestoreBuild(req cv instByName)
   let((checkTuple checkErrors checkWarnings)
     oagitRestoreCreateInstances(cv req->instances instByName req)
     unless(oagitRestoreErrorCode
-      oagitRestoreCreatePins(cv req->pins)
+      oagitRestoreCreatePins(cv oagitRestoreOrderRecords(req->pins req->port_order))
     )
     unless(oagitRestoreErrorCode
-      oagitRestoreCreatePorts(cv req->ports req->pins)
+      oagitRestoreCreatePorts(cv oagitRestoreOrderRecords(req->ports req->port_order)
+                              req->pins)
     )
     unless(oagitRestoreErrorCode
       oagitRestoreCreateWires(cv req->wires)

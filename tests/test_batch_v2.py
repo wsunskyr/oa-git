@@ -1319,3 +1319,25 @@ def test_layout_batch_telemetry_skill_parity_and_unified_backend_methods(
     assert fb_receipt.published is True
     assert fb_receipt.readback_verified is True
     assert fb.capture_layout(lay_target).manifest.cellview == lay_target
+
+
+def test_schematic_snapshot_to_restore_item_carries_captured_port_order() -> None:
+    cv = CellViewRef("work", "buf", "schematic")
+    target = CellViewRef("sandbox", "buf", "schematic")
+    snap = build_schematic_snapshot(
+        cv,
+        SchematicElectrical(
+            ports=(Port("IN", "input"), Port("OUT", "output")),
+            nets=(Net("IN"), Net("OUT")),
+        ),
+        SchematicPlacement(instances=()),
+        metadata={"port_order": ["OUT", "IN"]},
+    )
+
+    item = schematic_snapshot_to_restore_item(
+        snap,
+        target,
+        draft_cell="buf__oagit_draft_001",
+    )
+
+    assert item["port_order"] == ["OUT", "IN"]

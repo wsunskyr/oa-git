@@ -14,6 +14,7 @@ from oa_git.guards import (
     ensure_no_omissions,
     parse_engineering_number,
     probe_locks,
+    schematic_port_order,
     verify_roundtrip,
 )
 from oa_git.model import (
@@ -28,6 +29,7 @@ from oa_git.model import (
     PinPlacement,
     Port,
     RoundtripMismatchError,
+    SchemaValidationError,
     SchematicElectrical,
     SchematicPlacement,
     SchematicSnapshot,
@@ -599,3 +601,43 @@ def test_roundtrip_coalescing_rejects_genuine_endpoint_width_label_and_foldback_
         ),
     )
     assert not verify_roundtrip(foldback_exp, foldback_short, raise_on_mismatch=False).ok
+
+
+def _with_port_order(snapshot: SchematicSnapshot, order: list[str]) -> SchematicSnapshot:
+    return replace(
+        snapshot,
+        manifest=replace(snapshot.manifest, metadata={"port_order": order}),
+    )
+
+
+def test_schematic_port_order_reads_and_validates_captured_metadata() -> None:
+    snapshot = _snapshot()
+    assert schematic_port_order(snapshot) is None
+    assert schematic_port_order(_with_port_order(snapshot, ["in"])) == ("in",)
+
+    with pytest.raises(SchemaValidationError, match="duplicate"):
+        schematic_port_order(_with_port_order(snapshot, ["in", "in"]))
+    with pytest.raises(SchemaValidationError, match="every schematic terminal"):
+        schematic_port_order(_with_port_order(snapshot, ["other"]))
+    with pytest.raises(SchemaValidationError, match="non-empty strings"):
+        schematic_port_order(_with_port_order(snapshot, [""]))
+
+
+def test_verify_roundtrip_detects_declared_port_order_change() -> None:
+    base = _snapshot(
+        placement=SchematicPlacement(instances=(InstancePlacement("R1", (1.0, 2.0)),))
+    )
+    base = replace(
+        base,
+        electrical=replace(
+            base.electrical,
+            ports=(Port("a", "input"), Port("b", "output")),
+        ),
+    )
+    ordered = _with_port_order(base, ["a", "b"])
+    reordered = _with_port_order(base, ["b", "a"])
+
+    assert verify_roundtrip(ordered, reordered, raise_on_mismatch=False).ok is False
+    with pytest.raises(RoundtripMismatchError, match="port order"):
+        verify_roundtrip(ordered, reordered)
+    assert verify_roundtrip(ordered, ordered).ok is True

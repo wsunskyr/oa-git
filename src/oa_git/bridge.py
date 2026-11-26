@@ -21,6 +21,7 @@ from .guards import (
     ensure_library_allowed,
     ensure_no_live_locks,
     ensure_no_omissions,
+    schematic_port_order,
     verify_roundtrip,
 )
 from .layout_model import (
@@ -518,6 +519,7 @@ def render_restore_request_skill(
     response_path = _absolute_path(output_path, "output_path")
     rules_map = _normalize_coupling_rules_map(coupling_rules)
 
+    port_order = schematic_port_order(snapshot)
     instance_placements = {item.name: item for item in snapshot.placement.instances}
     ports = _skill_list(_render_port(item) for item in snapshot.electrical.ports)
     rendered_instances: list[str] = []
@@ -558,6 +560,12 @@ def render_restore_request_skill(
             ("max_passes", to_skill_literal(max_passes)),
             ("recompute_derived", to_skill_literal(recompute_derived)),
             ("output_path", to_skill_literal(str(response_path))),
+            (
+                "port_order",
+                _skill_list(to_skill_literal(name) for name in port_order)
+                if port_order
+                else "nil",
+            ),
             ("ports", ports),
             ("instances", instances),
             ("pins", pins),

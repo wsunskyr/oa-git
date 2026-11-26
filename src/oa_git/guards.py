@@ -1705,6 +1705,76 @@ def _compare_placement(
     return issues
 
 
+def schematic_port_order(snapshot: SchematicSnapshot) -> tuple[str, ...] | None:
+    """Return the captured terminal order from manifest metadata, if present.
+
+    ``export_schematic.il`` records the native ``cv~>terminals`` order as
+    ``metadata.port_order``.  The canonical electrical model sorts ports by
+    name, so restore must carry this order explicitly to recreate terminals in
+    the order they had in Virtuoso.  A missing entry (older snapshots) returns
+    ``None`` and leaves the historical name-sorted behavior in place; an entry
+    that is not a permutation of the snapshot terminals is rejected.
+    """
+
+    if not isinstance(snapshot, SchematicSnapshot):
+        raise SchemaValidationError("snapshot must be a SchematicSnapshot")
+    raw = snapshot.manifest.metadata.get("port_order")
+    if raw is None:
+        return None
+    if isinstance(raw, (str, bytes)) or not isinstance(raw, Sequence):
+        raise SchemaValidationError("metadata.port_order must be a list of terminal names")
+    names = tuple(raw)
+    if any(not isinstance(name, str) or not name for name in names):
+        raise SchemaValidationError("metadata.port_order must contain non-empty strings")
+    if len(set(names)) != len(names):
+        raise SchemaValidationError("metadata.port_order contains duplicate terminal names")
+    expected = {port.name for port in snapshot.electrical.ports}
+    expected.update(pin.name for pin in snapshot.placement.pins)
+    if set(names) != expected:
+        missing = sorted(expected - set(names))
+        unknown = sorted(set(names) - expected)
+        raise SchemaValidationError(
+            "metadata.port_order must list every schematic terminal exactly once"
+            f" (missing={missing}, unknown={unknown})"
+        )
+    return names
+
+
+def _compare_port_order(
+    expected: SchematicSnapshot,
+    actual: SchematicSnapshot,
+) -> list[RoundtripIssue]:
+    """Compare the relative order of declared ports after a restore.
+
+    Only ports are compared.  Pin figures are created in a separate pass by
+    ``restore_schematic.il``, so the interleaving of pins and ports in
+    ``cv~>terminals`` cannot always be reproduced; the port subsequence can.
+    """
+
+    expected_order = schematic_port_order(expected)
+    if expected_order is None:
+        return []
+    actual_order = schematic_port_order(actual)
+    port_names = {port.name for port in expected.electrical.ports}
+    expected_ports = [name for name in expected_order if name in port_names]
+    actual_ports = (
+        [name for name in actual_order if name in port_names]
+        if actual_order is not None
+        else []
+    )
+    if expected_ports != actual_ports:
+        return [
+            RoundtripIssue(
+                "electrical",
+                "metadata.port_order",
+                expected_ports,
+                actual_ports,
+                "Declared port order differs",
+            )
+        ]
+    return []
+
+
 def verify_roundtrip(
     expected: SchematicSnapshot,
     actual: SchematicSnapshot,
@@ -1721,9 +1791,10 @@ def verify_roundtrip(
     with endpoint and coordinate comparisons using ``coord_tol``.  Anonymous
     auto-nets (``^net[0-9]+$`` excluding explicit ports, pins, globals, wire
     labels, and buses) are verified by strict 1-to-1 connectivity bijection.
-    Manifest digests and derived/read-only parameters are intentionally
-    excluded from the comparison because a backend may regenerate them during
-    readback.
+    When manifest metadata carries ``port_order``, the declared-port
+    subsequence is compared as well.  Manifest digests and derived/read-only
+    parameters are intentionally excluded from the comparison because a backend
+    may regenerate them during readback.
     """
 
     if coord_tol < 0 or not math.isfinite(coord_tol):
@@ -1742,7 +1813,8 @@ def verify_roundtrip(
         if check_placement
         else []
     )
-    issues = tuple(electrical_issues + placement_issues)
+    port_order_issues = _compare_port_order(expected, actual)
+    issues = tuple(electrical_issues + placement_issues + port_order_issues)
     report = RoundtripReport(
         ok=not issues,
         electrical_ok=not electrical_issues,
@@ -1775,5 +1847,6 @@ __all__ = [
     "verify_derived_freshness",
     "RoundtripIssue",
     "RoundtripReport",
+    "schematic_port_order",
     "verify_roundtrip",
 ]

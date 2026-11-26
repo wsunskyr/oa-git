@@ -46,6 +46,11 @@ Every captured CellView lives in a canonical directory:
 - Named nets, port nets, global nets, and bus nets are matched strictly by literal name across `restore_schematic.il`, `guards.py:verify_roundtrip`, and `diff.py`.
 - Unnamed Virtuoso auto-nets (`^net[0-9]+$` not explicitly attached to a port or wire label) are matched by **1-to-1 pin-set `(inst, term)` bijection isomorphism**, eliminating false failures when `schCheck` renumbers internal nets while failing closed on any split or short (`anon_net_split` / `anon_net_short`).
 
+### Schematic Terminal Order Roundtrip (`metadata.port_order`)
+- `export_schematic.il` records the native `cv~>terminals` order in manifest `metadata.port_order`; `circuit.yaml` ports stay alphabetically canonical so electrical diffs remain order-insensitive.
+- `restore_schematic.il` creates pins and ports in that recorded order, and `guards.py:verify_roundtrip` compares the declared-port subsequence, so a restore that reverses terminal order fails closed instead of passing silently.
+- Snapshots without `port_order` keep the historical name-sorted restore order; an entry that is not a permutation of the snapshot terminals is rejected before any OA write.
+
 ## 3. Deep Module Boundaries & Ownership
 
 | Module | File(s) | Responsibility | Seam / Public Interface |
