@@ -1,0 +1,23 @@
+name: Feature Request
+description: Suggest a new capability or workflow improvement for oa-git
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or workflow need
+      description: What EDA / Git workflow problem are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the CLI flag, snapshot behavior, or SKILL capability you would like.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Virtuoso version, PDK behavior, or edge cases to consider (no proprietary files).

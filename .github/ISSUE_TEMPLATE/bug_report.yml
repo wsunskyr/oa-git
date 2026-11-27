@@ -1,0 +1,50 @@
+name: Bug Report
+description: Report a bug in oa-git capture, diff, merge, restore, or daemon workflows
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please avoid sharing proprietary PDK files, raw `.oa` binaries, or internal hostnames/paths.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected to happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce / command run
+      placeholder: |
+        oagit capture my_lib/my_cell/schematic
+        oagit restore my_lib/my_cell/schematic --target sandbox/my_cell/schematic --overwrite
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Virtuoso version, OS, Python version, and execution mode (local or SSH).
+      placeholder: "e.g. Virtuoso IC26.1 / ICADV20.1, RHEL 8, Python 3.12, local workstation"
+    validations:
+      required: true
+  - type: dropdown
+    id: view_type
+    attributes:
+      label: Affected OpenAccess view
+      options:
+        - schematic (sch.oa)
+        - symbol (symbol.oa)
+        - layout (layout.oa)
+        - CLI / init / daemon / SSH
+        - Multiple / other
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error output (sanitized)
+      render: text
+      placeholder: Paste sanitized CLI output or `--json` error payload here.
