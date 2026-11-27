@@ -2,6 +2,10 @@
   <img src="assets/banner.svg" alt="oa-git — Git for Cadence OpenAccess" width="100%" />
 </p>
 
+<p align="center">
+  English &nbsp;|&nbsp; <a href="README.zh-CN.md">简体中文</a>
+</p>
+
 Git-native version control for **Cadence OpenAccess** (`sch.oa`, `symbol.oa`, and `layout.oa`) — turning Virtuoso binary databases into deterministic, human-readable `YAML` / `JSONL` snapshots using **official documented SKILL APIs only**.
 
 ```bash
